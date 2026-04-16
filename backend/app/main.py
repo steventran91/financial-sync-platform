@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from datetime import datetime
 from backend.app.models.sync_job import SyncJob
 
@@ -42,3 +42,12 @@ sync_jobs = [
 @app.get("/sync-jobs")
 def get_sync_jobs():
     return sync_jobs
+
+@app.get("/sync-jobs/{job_id}")
+def get_sync_job(job_id: int):
+    for job in sync_jobs:
+        if job.id == job_id:
+            return job
+
+
+    raise HTTPException(status_code=404, detail="Sync job not found")
