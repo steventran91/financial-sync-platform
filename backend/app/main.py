@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from backend.app.data.sync_jobs import sync_jobs
 
@@ -15,8 +16,12 @@ def health_check() -> dict[str, str]:
 
 
 @app.get("/sync-jobs")
-def get_sync_jobs():
-    return sync_jobs
+def get_sync_jobs(status: Optional[str] = None):
+    if status is None:
+        return sync_jobs
+    
+    filtered_jobs = [job for job in sync_jobs if job.status == status]
+    return filtered_jobs
 
 
 @app.get("/sync-jobs/{job_id}")
