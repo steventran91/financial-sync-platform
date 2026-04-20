@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class CreateSyncJobRequest(BaseModel):
     provider_id: int
-    job_type: str
+    job_type: Literal["payments", "refunds", "adjustments"]
     status: Literal["pending", "running", "completed", "failed"]
 
 
