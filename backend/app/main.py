@@ -1,7 +1,8 @@
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from backend.app.models.sync_job import SyncJob
-from backend.app.services.sync_job_service import list_sync_jobs, get_sync_job_by_id
+from backend.app.models.create_sync_job import CreateSyncJobRequest
+from backend.app.services.sync_job_service import list_sync_jobs, get_sync_job_by_id, create_sync_job
 
 app = FastAPI(title="Financial Sync Platform API")
 
@@ -29,3 +30,7 @@ def get_sync_job(job_id: int):
         raise HTTPException(status_code=404, detail="Sync job not found")
 
     return job
+
+@app.post("/sync-jobs", response_model=SyncJob)
+def create_new_sync_job(payload: CreateSyncJobRequest):
+    return create_sync_job(payload)
