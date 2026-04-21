@@ -1,4 +1,6 @@
 from typing import Optional, List
+from sqlalchemy import text
+from backend.app.db.session import engine 
 from fastapi import FastAPI, HTTPException
 from backend.app.models.sync_job import SyncJob
 from backend.app.models.create_sync_job import CreateSyncJobRequest
@@ -16,6 +18,13 @@ def read_root() -> dict[str, str]:
 def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
+@app.get("/db-health")
+def db_health_check():
+    with engine.connect() as connection:
+        result = connection.execute(text("SELECT 1"))
+        value = result.scalar()
+
+    return {"database": "ok", "result": value}
 
 @app.get("/sync-jobs", response_model=List[SyncJob])
 def get_sync_jobs(status: Optional[str] = None):
