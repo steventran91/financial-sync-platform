@@ -1,31 +1,31 @@
 from datetime import datetime 
 from typing import Optional, List
-
-from backend.app.data.sync_jobs import sync_jobs
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+from backend.app.db.models.sync_job import SyncJobDB
 from backend.app.models.create_sync_job import CreateSyncJobRequest
 from backend.app.models.sync_job import SyncJob
 
-def list_sync_jobs(status: Optional[str] = None) -> list[SyncJob]:
-    if status is None:
-        return sync_jobs
+def list_sync_jobs(db: Session, status: Optional[str] = None) -> list[SyncJob]:
+    stmt = select(SyncJobDB)
 
-    return [job for job in sync_jobs if job.status == status]
+    if status is not None:
+        stmt = stmt.where(SyncJobDB.status == status)
 
-
-def get_sync_job_by_id(job_id: int) -> Optional[SyncJob]:
-    for job in sync_jobs:
-        if job.id == job_id:
-            return job
-
-    return None
+    rows = db.scalars(stmt).all()
+    return [SyncJob.model_validate(row) for row in rows]
 
 
-def create_sync_job(payload: CreateSyncJobRequest) -> SyncJob:
-    next_id = len(sync_jobs) + 1
+def get_sync_job_by_id(db: Session, job_id: int) -> Optional[SyncJob]:
+    row = db.get(SyncJobDB, job_id)
+    if row is None:
+        return None
+    return SyncJob.model_validate(row)
 
-    new_job = SyncJob(
-        id=next_id,
-        provider_id=payload.provider_id,
+
+def create_sync_job(db: Session, payload: CreateSyncJobRequest) -> SyncJob:
+    row = SyncJobDB(
+        provider_id = payload.provider_id,
         job_type=payload.job_type,
         status=payload.status,
         started_at=datetime.now(),
@@ -33,6 +33,7 @@ def create_sync_job(payload: CreateSyncJobRequest) -> SyncJob:
         records_processed=0,
         records_failed=0,
     )
-
-    sync_jobs.append(new_job)
-    return new_job
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return SyncJob.model_validate(row)

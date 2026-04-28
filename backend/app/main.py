@@ -1,7 +1,8 @@
 from typing import Optional, List
 from sqlalchemy import text
-from backend.app.db.session import engine 
-from fastapi import FastAPI, HTTPException
+from backend.app.db.session import engine, get_db
+from sqlalchemy.orm import Session
+from fastapi import FastAPI, HTTPException, Depends
 from backend.app.models.sync_job import SyncJob
 from backend.app.models.create_sync_job import CreateSyncJobRequest
 from backend.app.services.sync_job_service import list_sync_jobs, get_sync_job_by_id, create_sync_job
@@ -27,13 +28,14 @@ def db_health_check():
     return {"database": "ok", "result": value}
 
 @app.get("/sync-jobs", response_model=List[SyncJob])
-def get_sync_jobs(status: Optional[str] = None):
-    return list_sync_jobs(status=status)
+def get_sync_jobs(db: Session = Depends(get_db), status: Optional[str] = None):
+    return list_sync_jobs(db=db, status=status)
 
 
 @app.get("/sync-jobs/{job_id}", response_model=SyncJob)
-def get_sync_job(job_id: int):
-    job = get_sync_job_by_id(job_id)
+def get_sync_job(job_id: int, db: Session = Depends(get_db)):
+    job = get_sync_job_by_id(db=db, job_id=job_id)
+
 
     if job is None:
         raise HTTPException(status_code=404, detail="Sync job not found")
@@ -41,5 +43,5 @@ def get_sync_job(job_id: int):
     return job
 
 @app.post("/sync-jobs", response_model=SyncJob)
-def create_new_sync_job(payload: CreateSyncJobRequest):
-    return create_sync_job(payload)
+def create_new_sync_job(payload: CreateSyncJobRequest, db: Session = Depends(get_db)):
+    return create_sync_job(db=db, payload=payload)
