@@ -6,6 +6,8 @@ from fastapi import FastAPI, HTTPException, Depends
 from backend.app.models.sync_job import SyncJob
 from backend.app.models.create_sync_job import CreateSyncJobRequest
 from backend.app.services.sync_job_service import list_sync_jobs, get_sync_job_by_id, create_sync_job
+from backend.app.services.transaction_service import list_transactions, get_transaction_by_id
+from backend.app.models.transaction import Transaction
 
 app = FastAPI(title="Financial Sync Platform API")
 
@@ -45,3 +47,16 @@ def get_sync_job(job_id: int, db: Session = Depends(get_db)):
 @app.post("/sync-jobs", response_model=SyncJob)
 def create_new_sync_job(payload: CreateSyncJobRequest, db: Session = Depends(get_db)):
     return create_sync_job(db=db, payload=payload)
+
+@app.get("/transactions", response_model=List[Transaction])
+def get_transactions(db: Session = Depends(get_db)):
+    return list_transactions(db=db)
+
+@app.get("/transaction{transaction_id}", reponse_model=Transaction)
+def get_transaction_by_id(transaction_id: int, db: Session = Depends(get_db)):
+    transaction = get_transaction_by_id(db=db, transactions_id=transaction_id)
+
+    if transaction is None:
+        raise HTTPException(status_code=404, detail="Sync job not found")
+
+    return transaction
