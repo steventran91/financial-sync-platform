@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 from fastapi import FastAPI, HTTPException, Depends
 from backend.app.models.sync_job import SyncJob
 from backend.app.models.create_sync_job import CreateSyncJobRequest
+from backend.app.models.create_transaction import CreateTransactionRequest
 from backend.app.services.sync_job_service import list_sync_jobs, get_sync_job_by_id, create_sync_job
-from backend.app.services.transaction_service import list_transactions, get_transaction_by_id
+from backend.app.services.transaction_service import list_transactions, get_transaction_by_id, create_transaction
 from backend.app.models.transaction import Transaction
 
 app = FastAPI(title="Financial Sync Platform API")
@@ -37,8 +38,6 @@ def get_sync_jobs(db: Session = Depends(get_db), status: Optional[str] = None):
 @app.get("/sync-jobs/{job_id}", response_model=SyncJob)
 def get_sync_job(job_id: int, db: Session = Depends(get_db)):
     job = get_sync_job_by_id(db=db, job_id=job_id)
-
-
     if job is None:
         raise HTTPException(status_code=404, detail="Sync job not found")
 
@@ -52,11 +51,15 @@ def create_new_sync_job(payload: CreateSyncJobRequest, db: Session = Depends(get
 def get_transactions(db: Session = Depends(get_db)):
     return list_transactions(db=db)
 
-@app.get("/transaction{transaction_id}", reponse_model=Transaction)
-def get_transaction_by_id(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = get_transaction_by_id(db=db, transactions_id=transaction_id)
+@app.get("/transactions/{transaction_id}", response_model=Transaction)
+def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
+    transaction = get_transaction_by_id(db=db, transaction_id=transaction_id)
 
     if transaction is None:
-        raise HTTPException(status_code=404, detail="Sync job not found")
+        raise HTTPException(status_code=404, detail="Transaction not found")
 
     return transaction
+
+@app.post("/transactions", response_model=Transaction)
+def create_new_transaction(payload: CreateTransactionRequest, db: Session = Depends(get_db)):
+    return create_transaction(db=db, payload=payload)
