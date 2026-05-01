@@ -7,8 +7,15 @@ from backend.app.models.transaction import Transaction
 from backend.app.models.create_transaction import CreateTransactionRequest
 
 
-def list_transactions(db: Session) -> List[Transaction]:
+def list_transactions(db: Session, merchant: Optional[str] = None, sync_job_id: Optional[int] = None, status: Optional[str] = None) -> List[Transaction]:
     transaction = select(TransactionDB)
+
+    if status is not None:
+        transaction = transaction.where(TransactionDB.status == status)
+    if merchant is not None:
+        transaction = transaction.where(TransactionDB.merchant == merchant)
+    if sync_job_id is not None:
+        transaction = transaction.where(TransactionDB.sync_job_id == sync_job_id)
 
     rows = db.scalars(transaction).all()
     return [Transaction.model_validate(row) for row in rows]
@@ -18,6 +25,8 @@ def get_transaction_by_id(db: Session, transaction_id: int) -> Optional[Transact
     if row is None:
         return None
     return Transaction.model_validate(row)
+
+
 
 def create_transaction(db: Session, payload: CreateTransactionRequest) -> Transaction:
     row = TransactionDB(

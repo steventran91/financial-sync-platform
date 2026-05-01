@@ -48,8 +48,8 @@ def create_new_sync_job(payload: CreateSyncJobRequest, db: Session = Depends(get
     return create_sync_job(db=db, payload=payload)
 
 @app.get("/transactions", response_model=List[Transaction])
-def get_transactions(db: Session = Depends(get_db)):
-    return list_transactions(db=db)
+def get_transactions(status: Optional[str] = None, merchant: Optional[str] = None, sync_job_id: Optional[int] = None, db: Session = Depends(get_db)):
+    return list_transactions(db=db, status=status, merchant=merchant, sync_job_id=sync_job_id)
 
 @app.get("/transactions/{transaction_id}", response_model=Transaction)
 def get_transaction(transaction_id: int, db: Session = Depends(get_db)):

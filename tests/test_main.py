@@ -136,13 +136,49 @@ def test_get_transaction_by_id():
     assert txn_response.status_code == 200
     txn_id = txn_response.json()["id"]
     
-    txn_id_response = client.get(f"transactions/{txn_id}")
+    txn_id_response = client.get(f"/transactions/{txn_id}")
     assert txn_id_response.status_code == 200
     txn_data = txn_id_response.json()
     assert txn_data["amount"] == "25"
     assert txn_data["transaction_date"] == "2026-04-30T00:00:00"
     assert txn_data["merchant"] == "Kith"
     assert txn_data["sync_job_id"] == sync_data["id"]
+
+def test_get_transaction_by_filter():
+    sync_job = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending",
+    }
+
+    response = client.post("/sync-jobs", json=sync_job)
+    assert response.status_code == 200
+    sync_data = response.json()
+
+    txn = {
+        "amount": 25,
+        "transaction_date": "2026-04-30T00:00:00",
+        "merchant": "Kith",
+        "sync_job_id": sync_data["id"],
+    }
+
+    response = client.post("/transactions", json=txn)
+    assert response.status_code == 200
+    txn_data = response.json()
+    txn_status = txn_data["status"]
+    txn_merchant = txn_data["merchant"]
+    txn_job_id = txn_data["sync_job_id"]
+    
+
+    response = client.get(f"/transactions?status={txn_status}")
+    assert response.status_code == 200
+    data = response.json()
+    statuses = {status["status"] for status in data}
+    assert txn_status in statuses
+    merchants = {merchant["merchant"] for merchant in data}
+    assert txn_merchant in merchants
+    ids = {sync_job["sync_job_id"] for sync_job in data}
+    assert txn_job_id in ids
 
 def test_transaction_not_found():
     response = client.get(f"/transactions/{99999}")
