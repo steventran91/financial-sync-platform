@@ -144,6 +144,13 @@ def test_get_transaction_by_id():
     assert txn_data["merchant"] == "Kith"
     assert txn_data["sync_job_id"] == sync_data["id"]
 
+def test_transaction_not_found():
+    response = client.get(f"/transactions/{99999}")
+
+    assert response.status_code == 404 
+    assert response.json() == {"detail": "Transaction not found"}
+
+
 
 
 
