@@ -8,12 +8,14 @@ import pytest
 from sqlalchemy import delete
 from backend.app.db.session import SessionLocal
 from backend.app.db.models.sync_job import SyncJobDB
+from backend.app.db.models.transaction import TransactionDB
 
 
 @pytest.fixture(autouse=True)
 def clear_sync_jobs():
     db = SessionLocal()
     try:
+        db.execute(delete(TransactionDB))
         db.execute(delete(SyncJobDB))
         db.commit()
     finally:

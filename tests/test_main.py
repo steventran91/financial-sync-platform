@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from backend.app.main import app
 
+
 client = TestClient(app)
 
 def test_health_check():
@@ -84,4 +85,65 @@ def test_create_sync_job():
     assert data["job_type"] == "payments"
     assert data["status"] == "pending"
     assert "id" in data 
+
+
+def test_create_transaction():
+    sync_job = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending",
+    }
+
+    sync_job_response = client.post("/sync-jobs", json=sync_job)
+    assert sync_job_response.status_code == 200
+    sync_job_data = sync_job_response.json()
+
+    transaction_payload = {
+        "amount": 25,
+        "transaction_date": "2026-04-30T00:00:00",
+        "merchant": "Kith",
+        "sync_job_id": sync_job_data["id"],
+    }
+
+    transaction_response = client.post("/transactions", json=transaction_payload)
+    assert transaction_response.status_code == 200
+    transaction_data = transaction_response.json()
+
+    assert transaction_data["amount"] == "25"
+    assert transaction_data["transaction_date"] == "2026-04-30T00:00:00"
+    assert transaction_data["merchant"] == "Kith"
+    assert transaction_data["sync_job_id"] == sync_job_data["id"]
+
+def test_get_transaction_by_id():
+    sync_job = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending",
+    }
+
+    sync_response = client.post("/sync-jobs", json=sync_job)
+    assert sync_response.status_code == 200
+    sync_data = sync_response.json()
+
+    txn = {
+        "amount": 25,
+        "transaction_date": "2026-04-30T00:00:00",
+        "merchant": "Kith",
+        "sync_job_id": sync_data["id"],
+    }
+
+    txn_response = client.post("/transactions", json=txn)
+    assert txn_response.status_code == 200
+    txn_id = txn_response.json()["id"]
+    
+    txn_id_response = client.get(f"transactions/{txn_id}")
+    assert txn_id_response.status_code == 200
+    txn_data = txn_id_response.json()
+    assert txn_data["amount"] == "25"
+    assert txn_data["transaction_date"] == "2026-04-30T00:00:00"
+    assert txn_data["merchant"] == "Kith"
+    assert txn_data["sync_job_id"] == sync_data["id"]
+
+
+
 
