@@ -114,6 +114,45 @@ def test_create_transaction():
     assert transaction_data["merchant"] == "Kith"
     assert transaction_data["sync_job_id"] == sync_job_data["id"]
 
+def test_create_transaction_invalid_amount():
+    sync = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending", 
+    }
+
+    response = client.post("/sync-jobs", json=sync)
+    assert response.status_code == 200
+
+    txn = {
+        "amount": -25,
+        "transaction_date": "2026-04-30T00:00:00",
+        "merchant": "Kith",
+    }
+
+    response = client.post("/transactions", json=txn)
+    assert response.status_code == 422
+
+def test_create_transaction_invalid_date():
+    sync = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending", 
+    }
+
+    response = client.post("/sync-jobs", json=sync)
+    assert response.status_code == 200
+
+    txn = {
+        "amount": 25,
+        "transaction_date": "2027-04-30T00:00:00",
+        "merchant": "Kith",
+    }
+
+    response = client.post("/transactions", json=txn)
+    assert response.status_code == 422
+
+
 def test_get_transaction_by_id():
     sync_job = {
         "provider_id": 100,
@@ -179,6 +218,41 @@ def test_get_transaction_by_filter():
     assert txn_merchant in merchants
     ids = {sync_job["sync_job_id"] for sync_job in data}
     assert txn_job_id in ids
+
+def test_patch_transaction():
+    sync_job = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending",
+    }
+
+    response = client.post("/sync-jobs", json=sync_job)
+    assert response.status_code == 200
+    sync_data = response.json()
+
+    txn = {
+        "amount": 25,
+        "transaction_date": "2026-04-30T00:00:00",
+        "merchant": "Kith",
+        "sync_job_id": sync_data["id"],
+    }
+
+    response = client.post("/transactions", json=txn)
+    assert response.status_code == 200
+    txn_data = response.json()
+    txn_id = txn_data["id"]
+    assert txn_data["status"] == "pending"
+
+    txn_update = {
+        "status": "completed",
+    }
+
+    response = client.patch(f"/transactions/{txn_id}", json=txn_update)
+    assert response.status_code == 200
+    txn_update_data = response.json()
+    assert txn_update_data["status"] == "completed"
+    assert txn_update_data["id"] == txn_id
+
 
 def test_transaction_not_found():
     response = client.get(f"/transactions/{99999}")

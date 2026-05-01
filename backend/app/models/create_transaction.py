@@ -24,3 +24,4 @@ class CreateTransactionRequest(BaseModel):
         if transaction_date > datetime.now(tz=transaction_date.tzinfo):
             raise ValueError("Invalid transaction date. Transaction date is in the future")
         return transaction_date
+    

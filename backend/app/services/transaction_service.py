@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from backend.app.db.models.transaction import TransactionDB
 from backend.app.models.transaction import Transaction
+from backend.app.models.update_transaction import UpdateTransactionRequest
 from backend.app.models.create_transaction import CreateTransactionRequest
 
 
@@ -26,6 +27,18 @@ def get_transaction_by_id(db: Session, transaction_id: int) -> Optional[Transact
         return None
     return Transaction.model_validate(row)
 
+
+def update_transaction(db: Session, transaction_id: int, payload: UpdateTransactionRequest) -> Optional[Transaction]:
+    row = db.get(TransactionDB, transaction_id)
+
+    if row is None:
+        return None
+    
+    row.status = payload.status
+    
+    db.commit()
+    db.refresh(row)
+    return Transaction.model_validate(row)
 
 
 def create_transaction(db: Session, payload: CreateTransactionRequest) -> Transaction:

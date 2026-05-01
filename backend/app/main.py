@@ -7,8 +7,9 @@ from backend.app.models.sync_job import SyncJob
 from backend.app.models.create_sync_job import CreateSyncJobRequest
 from backend.app.models.create_transaction import CreateTransactionRequest
 from backend.app.services.sync_job_service import list_sync_jobs, get_sync_job_by_id, create_sync_job
-from backend.app.services.transaction_service import list_transactions, get_transaction_by_id, create_transaction
+from backend.app.services.transaction_service import list_transactions, get_transaction_by_id, create_transaction, update_transaction
 from backend.app.models.transaction import Transaction
+from backend.app.models.update_transaction import UpdateTransactionRequest
 
 app = FastAPI(title="Financial Sync Platform API")
 
@@ -59,6 +60,15 @@ def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Transaction not found")
 
     return transaction
+
+@app.patch("/transactions/{transaction_id}", response_model=Transaction)
+def patch_transaction(payload: UpdateTransactionRequest, transaction_id: int, db: Session = Depends(get_db)):
+    updated_transaction = update_transaction(db=db, payload=payload, transaction_id=transaction_id)
+
+    if updated_transaction is None:
+        raise HTTPException(status_code=404, detail="Transaction ID does not exist")
+    
+    return updated_transaction
 
 @app.post("/transactions", response_model=Transaction)
 def create_new_transaction(payload: CreateTransactionRequest, db: Session = Depends(get_db)):
