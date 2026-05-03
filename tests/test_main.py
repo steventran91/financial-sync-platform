@@ -254,6 +254,48 @@ def test_patch_transaction():
     assert txn_update_data["id"] == txn_id
 
 
+def test_update_transaction_not_found():
+    txn_update = {
+        "status": "completed",
+    }
+
+    response = client.patch(f"/transactions/{99}", json=txn_update)
+    assert response.status_code == 404
+
+def test_delete_transaction():
+    sync_job = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending",
+    }
+
+    response = client.post("/sync-jobs", json=sync_job)
+    assert response.status_code == 200
+    sync_data = response.json()
+
+    txn = {
+        "amount": 25,
+        "transaction_date": "2026-04-30T00:00:00",
+        "merchant": "Kith",
+        "sync_job_id": sync_data["id"],
+    }
+
+    response = client.post("/transactions", json=txn)
+    assert response.status_code == 200
+    txn_data = response.json()
+    txn_id = txn_data["id"]
+
+    response = client.delete(f"/transactions/{txn_id}")
+    assert response.status_code == 200
+    assert response.json() == {"message": "Transaction deleted"}
+    
+
+
+def test_delete_transaction_not_found():
+    response = client.delete(f"/transactions/{99}")
+    assert response.status_code == 404
+
+
 def test_transaction_not_found():
     response = client.get(f"/transactions/{99999}")
 

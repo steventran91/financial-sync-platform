@@ -7,9 +7,12 @@ from backend.app.models.sync_job import SyncJob
 from backend.app.models.create_sync_job import CreateSyncJobRequest
 from backend.app.models.create_transaction import CreateTransactionRequest
 from backend.app.services.sync_job_service import list_sync_jobs, get_sync_job_by_id, create_sync_job
-from backend.app.services.transaction_service import list_transactions, get_transaction_by_id, create_transaction, update_transaction
+from backend.app.services.transaction_service import list_transactions, get_transaction_by_id, create_transaction, update_transaction, delete_transaction
 from backend.app.models.transaction import Transaction
 from backend.app.models.update_transaction import UpdateTransactionRequest
+from backend.app.etl.transactions_etl import process_transaction_csv_ETL
+from fastapi import UploadFile, File
+
 
 app = FastAPI(title="Financial Sync Platform API")
 
@@ -31,6 +34,11 @@ def db_health_check():
 
     return {"database": "ok", "result": value}
 
+@app.post("/sync-jobs", response_model=SyncJob)
+def create_new_sync_job(payload: CreateSyncJobRequest, db: Session = Depends(get_db)):
+    return create_sync_job(db=db, payload=payload)
+
+
 @app.get("/sync-jobs", response_model=List[SyncJob])
 def get_sync_jobs(db: Session = Depends(get_db), status: Optional[str] = None):
     return list_sync_jobs(db=db, status=status)
@@ -44,13 +52,15 @@ def get_sync_job(job_id: int, db: Session = Depends(get_db)):
 
     return job
 
-@app.post("/sync-jobs", response_model=SyncJob)
-def create_new_sync_job(payload: CreateSyncJobRequest, db: Session = Depends(get_db)):
-    return create_sync_job(db=db, payload=payload)
+
+@app.post("/transactions", response_model=Transaction)
+def create_new_transaction(payload: CreateTransactionRequest, db: Session = Depends(get_db)):
+    return create_transaction(db=db, payload=payload)
+
 
 @app.get("/transactions", response_model=List[Transaction])
-def get_transactions(status: Optional[str] = None, merchant: Optional[str] = None, sync_job_id: Optional[int] = None, db: Session = Depends(get_db)):
-    return list_transactions(db=db, status=status, merchant=merchant, sync_job_id=sync_job_id)
+def get_transactions(limit: int= 20, offset: int = 0, status: Optional[str] = None, merchant: Optional[str] = None, sync_job_id: Optional[int] = None, db: Session = Depends(get_db)):
+    return list_transactions(db=db, limit=limit, offset=offset, status=status, merchant=merchant, sync_job_id=sync_job_id)
 
 @app.get("/transactions/{transaction_id}", response_model=Transaction)
 def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
@@ -70,6 +80,19 @@ def patch_transaction(payload: UpdateTransactionRequest, transaction_id: int, db
     
     return updated_transaction
 
-@app.post("/transactions", response_model=Transaction)
-def create_new_transaction(payload: CreateTransactionRequest, db: Session = Depends(get_db)):
-    return create_transaction(db=db, payload=payload)
+@app.delete("/transactions/{transaction_id}")
+def delete_txn(transaction_id: int, db: Session = Depends(get_db)):
+    deleted_txn = delete_transaction(db=db, transaction_id=transaction_id)
+
+    if deleted_txn:
+        return {"message": "Transaction deleted"}
+    else:
+        raise HTTPException(status_code=404, detail="Transaction ID not found")
+    
+
+@app.post("/transactions/upload")
+async def upload_transactions(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    await process_transaction_csv_ETL(db=db, file=file)
+    return {"message": "file uploaded"}
+        
+

@@ -8,7 +8,32 @@ from backend.app.models.update_transaction import UpdateTransactionRequest
 from backend.app.models.create_transaction import CreateTransactionRequest
 
 
-def list_transactions(db: Session, merchant: Optional[str] = None, sync_job_id: Optional[int] = None, status: Optional[str] = None) -> List[Transaction]:
+
+
+def create_transaction(db: Session, payload: CreateTransactionRequest) -> Transaction:
+    row = TransactionDB(
+        amount = payload.amount,
+        transaction_date = payload.transaction_date,
+        merchant = payload.merchant,
+        sync_job_id = payload.sync_job_id,
+        created_at = datetime.now(),
+        status = "pending"
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return Transaction.model_validate(row)
+
+
+def list_transactions(
+        db: Session, 
+        merchant: Optional[str] = None, 
+        sync_job_id: Optional[int] = None, 
+        status: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0
+    ) -> List[Transaction]:
+    
     transaction = select(TransactionDB)
 
     if status is not None:
@@ -17,6 +42,8 @@ def list_transactions(db: Session, merchant: Optional[str] = None, sync_job_id: 
         transaction = transaction.where(TransactionDB.merchant == merchant)
     if sync_job_id is not None:
         transaction = transaction.where(TransactionDB.sync_job_id == sync_job_id)
+
+    transaction = transaction.limit(limit).offset(offset)
 
     rows = db.scalars(transaction).all()
     return [Transaction.model_validate(row) for row in rows]
@@ -41,17 +68,13 @@ def update_transaction(db: Session, transaction_id: int, payload: UpdateTransact
     return Transaction.model_validate(row)
 
 
-def create_transaction(db: Session, payload: CreateTransactionRequest) -> Transaction:
-    row = TransactionDB(
-        amount = payload.amount,
-        transaction_date = payload.transaction_date,
-        merchant = payload.merchant,
-        sync_job_id = payload.sync_job_id,
-        created_at = datetime.now(),
-        status = "pending"
-    )
-    db.add(row)
+def delete_transaction(db: Session, transaction_id: int) -> bool:
+    transaction = db.get(TransactionDB, transaction_id)
+
+    if transaction is None:
+        return False
+
+    db.delete(transaction)
     db.commit()
-    db.refresh(row)
-    return Transaction.model_validate(row)
+    return True 
 
