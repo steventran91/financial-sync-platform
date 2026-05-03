@@ -9,6 +9,7 @@ from backend.app.services.transaction_service import create_transaction
 async def process_transaction_csv_ETL(db: Session, file: UploadFile):
     contents = await file.read()
     reader = csv.DictReader(io.StringIO(contents.decode("utf-8")))
+    bad_rows = []
 
     for row in reader:
         try:
@@ -21,7 +22,9 @@ async def process_transaction_csv_ETL(db: Session, file: UploadFile):
             create_transaction(db=db, payload=transaction)
 
         except ValidationError as e:
-            print(f"Skipping bad row: {row}, error: {e}")
+            bad_rows.append({"row": dict(row), "error": str(e)})
+
+    return bad_rows
 
 
     
