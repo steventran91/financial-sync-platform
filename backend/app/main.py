@@ -92,7 +92,7 @@ def delete_txn(transaction_id: int, db: Session = Depends(get_db)):
 
 @app.post("/transactions/upload")
 async def upload_transactions(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    errors = await process_transaction_csv_ETL(db=db, file=file)
-    return {"message": "upload complete", "errors": errors}
+    errors,  actual_rows = await process_transaction_csv_ETL(db=db, file=file)
+    return {"message": "upload complete.", "rows_processed": actual_rows, "errors": errors}
         
 

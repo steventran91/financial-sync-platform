@@ -1,3 +1,4 @@
+import io
 from fastapi.testclient import TestClient
 from backend.app.main import app
 
@@ -302,7 +303,75 @@ def test_transaction_not_found():
     assert response.status_code == 404 
     assert response.json() == {"detail": "Transaction not found"}
 
+def test_upload_valid_csv():
+    sync_job = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending",
+    }
+    response = client.post("/sync-jobs", json=sync_job)
+    assert response.status_code == 200
+    sync_job_id = response.json()["id"]
 
+    csv_content = f"transaction_date,amount,merchant,sync_job_id\n2026-04-01,250.00,Nike,{sync_job_id}\n"
+    file = ("test.csv", io.BytesIO(csv_content.encode("utf-8")), "text/csv")
+    response = client.post("/transactions/upload", files={"file": file})
+    assert response.status_code == 200
+
+    rows_processed = response.json()["rows_processed"]
+    errors = response.json()["errors"]
+    assert rows_processed == 1
+    assert errors == []
+
+def test_upload_with_bad_rows():
+    sync_job = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending",
+    }
+    response = client.post("/sync-jobs", json=sync_job)
+    assert response.status_code == 200
+    sync_job_id = response.json()["id"]
+
+    csv_content = (
+        f"transaction_date,amount,merchant,sync_job_id\n"
+        f"2027-04-01,250.00,Nike,{sync_job_id}\n"
+        f"2026-04-01,-250.00,Nike,{sync_job_id}\n"
+        f"2026-04-01,0.00,Nike,{sync_job_id}\n"
+    )
+    file = ("test.csv", io.BytesIO(csv_content.encode("utf-8")), "text/csv")
+    response = client.post("/transactions/upload", files={"file": file})
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["errors"]) == 3
+    assert data["errors"][0]["row"]["transaction_date"] == "2027-04-01"
+    assert data["errors"][1]["row"]["amount"] == "-250.00"
+    assert data["errors"][2]["row"]["amount"] == "0.00"
+
+
+def test_upload_empty_file():
+    sync_job = {
+        "provider_id": 100,
+        "job_type": "payments",
+        "status": "pending",
+    }
+    response = client.post("/sync-jobs", json=sync_job)
+    assert response.status_code == 200
+
+
+    csv_content = (
+        f"transaction_date,amount,merchant,sync_job_id\n"
+    )
+    file = ("test.csv", io.BytesIO(csv_content.encode("utf-8")), "text/csv")
+    response = client.post("/transactions/upload", files={"file": file})
+    assert response.status_code == 200
+    data = response.json()
+    rows_processed = data["rows_processed"]
+    errors = data["errors"]
+    assert rows_processed == 0
+    assert errors == []
+
+    
 
 
 
