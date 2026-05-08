@@ -9,23 +9,31 @@ from backend.app.db.session import SessionLocal
 
 
 def extract(**context):
-    file_path = "/path/to/my/file.csv"
+    file_path = "/opt/airflow/dags/transactions.csv"
+
 
     with open(file_path, mode="r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
+        print(f"Extracted {len(rows)} rows: {rows}")
         context["ti"].xcom_push(key="rows", value=rows)
 
 def transform(**context):
     rows = context["ti"].xcom_pull(key="rows", task_ids="extract")
+
     valid_rows = []
     bad_rows = []
 
     for row in rows:
+
+        transaction_date = row['transaction_date']
+        if 'T' not in transaction_date:
+            transaction_date = transaction_date + 'T00:00:00'
+
         try:
             transaction = CreateTransactionRequest(
                 amount= row['amount'],
-                transaction_date=row['transaction_date'],
+                transaction_date=transaction_date,
                 merchant=row['merchant'],
                 sync_job_id=row['sync_job_id'],
             )

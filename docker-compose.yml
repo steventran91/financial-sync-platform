@@ -33,15 +33,19 @@ services:
     restart: always
     depends_on:
       - airflow_db
+      - db
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@airflow_db:5432/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      PYTHONPATH: /opt/airflow/project
+      DATABASE_URL: postgresql://postgres:postgres@financial_sync_db:5432/financial_sync
     ports:
       - "8080:8080"
     command: webserver
     volumes:
       - ./dags:/opt/airflow/dags
+      - .:/opt/airflow/project
 
   airflow_scheduler:
     image: apache/airflow:2.8.1
@@ -49,13 +53,17 @@ services:
     restart: always
     depends_on:
       - airflow_db
+      - db
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@airflow_db:5432/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      PYTHONPATH: /opt/airflow/project
+      DATABASE_URL: postgresql://postgres:postgres@financial_sync_db:5432/financial_sync
     command: scheduler
     volumes:
       - ./dags:/opt/airflow/dags
+      - .:/opt/airflow/project
 
 volumes:
   postgres_data:
