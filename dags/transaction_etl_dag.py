@@ -3,8 +3,8 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 from pydantic import ValidationError
+from backend.app.etl.core import load_valid_rows_to_db
 from backend.app.models.create_transaction import CreateTransactionRequest
-from backend.app.services.transaction_service import create_transaction
 from backend.app.db.session import SessionLocal
 
 
@@ -50,9 +50,7 @@ def load(**context):
     rows = context["ti"].xcom_pull(key='valid_rows', task_ids="transform")
     try:
         db = SessionLocal()
-        for row in rows:
-            payload = CreateTransactionRequest(**row)
-            create_transaction(db=db, payload=payload)
+        load_valid_rows_to_db(db=db, valid_rows=rows)
     finally:
         db.close()
 
