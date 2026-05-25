@@ -3,7 +3,8 @@ from fastapi.testclient import TestClient
 from backend.app.main import app
 
 
-client = TestClient(app)
+client = TestClient(app, headers={"financial-platform-api-key": "financial-sync-platform-2026"})
+
 
 def test_health_check():
     response = client.get("/health")

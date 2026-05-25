@@ -12,9 +12,10 @@ from backend.app.models.transaction import Transaction
 from backend.app.models.update_transaction import UpdateTransactionRequest
 from backend.app.etl.transactions_etl import process_transaction_csv_ETL
 from fastapi import UploadFile, File
+from backend.app.auth import verify_api_key
 
 
-app = FastAPI(title="Financial Sync Platform API")
+app = FastAPI(dependencies=[Depends(verify_api_key)], title="Financial Sync Platform API")
 
 
 @app.get("/")
