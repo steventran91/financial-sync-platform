@@ -38,8 +38,9 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@airflow_db:5432/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
       PYTHONPATH: /opt/airflow/project
-      DATABASE_URL: postgresql://postgres:postgres@financial_sync_db:5432/financial_sync
+      DATABASE_URL: ${DATABASE_URL}
     ports:
       - "8080:8080"
     command: webserver
@@ -58,8 +59,9 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@airflow_db:5432/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
       PYTHONPATH: /opt/airflow/project
-      DATABASE_URL: postgresql://postgres:postgres@financial_sync_db:5432/financial_sync
+      DATABASE_URL: ${DATABASE_URL}
     command: scheduler
     volumes:
       - ./dags:/opt/airflow/dags

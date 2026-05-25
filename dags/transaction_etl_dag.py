@@ -11,12 +11,15 @@ from backend.app.db.session import SessionLocal
 def extract(**context):
     file_path = "/opt/airflow/dags/transactions.csv"
 
+    try:
+        with open(file_path, mode="r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            print(f"Extracted {len(rows)} rows: {rows}")
+            context["ti"].xcom_push(key="rows", value=rows)
+    except FileNotFoundError:
+        raise FileNotFoundError("File not present for sync job")
 
-    with open(file_path, mode="r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
-        print(f"Extracted {len(rows)} rows: {rows}")
-        context["ti"].xcom_push(key="rows", value=rows)
 
 def transform(**context):
     rows = context["ti"].xcom_pull(key="rows", task_ids="extract")
