@@ -39,14 +39,19 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      AIRFLOW_VAR_AWS_ACCESS_KEY_ID: ${AIRFLOW_VAR_AWS_ACCESS_KEY_ID}
+      AIRFLOW_VAR_AWS_SECRET_ACCESS_KEY: ${AIRFLOW_VAR_AWS_SECRET_ACCESS_KEY}
+      AIRFLOW_VAR_AWS_BUCKET_NAME: ${AIRFLOW_VAR_AWS_BUCKET_NAME}
+      AIRFLOW_VAR_AWS_REGION: ${AIRFLOW_VAR_AWS_REGION}
       PYTHONPATH: /opt/airflow/project
       DATABASE_URL: ${DATABASE_URL}
     ports:
       - "8080:8080"
-    command: webserver
+    command: bash -c "pip install -r /requirements.txt && airflow webserver"
     volumes:
       - ./dags:/opt/airflow/dags
       - .:/opt/airflow/project
+      - ./requirements.txt:/requirements.txt
 
   airflow_scheduler:
     image: apache/airflow:2.8.1
@@ -60,12 +65,17 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      AIRFLOW_VAR_AWS_ACCESS_KEY_ID: ${AIRFLOW_VAR_AWS_ACCESS_KEY_ID}
+      AIRFLOW_VAR_AWS_SECRET_ACCESS_KEY: ${AIRFLOW_VAR_AWS_SECRET_ACCESS_KEY}
+      AIRFLOW_VAR_AWS_BUCKET_NAME: ${AIRFLOW_VAR_AWS_BUCKET_NAME}
+      AIRFLOW_VAR_AWS_REGION: ${AIRFLOW_VAR_AWS_REGION}
       PYTHONPATH: /opt/airflow/project
       DATABASE_URL: ${DATABASE_URL}
-    command: scheduler
+    command: bash -c "pip install -r /requirements.txt && airflow scheduler"
     volumes:
       - ./dags:/opt/airflow/dags
       - .:/opt/airflow/project
+      - ./requirements.txt:/requirements.txt
 
 volumes:
   postgres_data:

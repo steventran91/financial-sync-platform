@@ -1,4 +1,6 @@
 import csv
+import boto3
+import os, io
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
@@ -6,18 +8,30 @@ from pydantic import ValidationError
 from backend.app.etl.core import load_valid_rows_to_db
 from backend.app.models.create_transaction import CreateTransactionRequest
 from backend.app.db.session import SessionLocal
+from botocore.exceptions import ClientError
+from airflow.models import Variable
 
 
 def extract(**context):
-    file_path = "/opt/airflow/dags/transactions.csv"
+    bucket = Variable.get("aws_bucket_name")
+    region = Variable.get("aws_region")
+    access_key = Variable.get("aws_access_key_id")
+    secret_key = Variable.get("aws_secret_access_key")
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        region_name=region
+    )
 
     try:
-        with open(file_path, mode="r", newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
+            response = s3.get_object(Bucket=bucket, Key="transactions.csv")
+            content = response["Body"].read().decode("utf-8")
+            reader = csv.DictReader(io.StringIO(content))
             rows = list(reader)
             print(f"Extracted {len(rows)} rows: {rows}")
             context["ti"].xcom_push(key="rows", value=rows)
-    except FileNotFoundError:
+    except ClientError as e:
         raise FileNotFoundError("File not present for sync job")
 
 
