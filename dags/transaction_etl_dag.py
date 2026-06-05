@@ -1,6 +1,7 @@
 import csv
 import boto3
 import os, io
+import json
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
@@ -64,8 +65,25 @@ def transform(**context):
 
 
 def load(**context):
+    bucket = Variable.get("aws_bucket_name")
+    region = Variable.get("aws_region")
+    access_key = Variable.get("aws_access_key_id")
+    secret_key = Variable.get("aws_secret_access_key")
+    bad_rows = context["ti"].xcom_pull(key='bad_rows', task_ids="transform")
     rows = context["ti"].xcom_pull(key='valid_rows', task_ids="transform")
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        region_name=region
+    )
     try:
+        if bad_rows:
+            s3.put_object(
+                Bucket=bucket,
+                Key=f"failed_transactions_{datetime.now().strftime('%Y-%m-%d')}.json",
+                Body=json.dumps(bad_rows)
+            )
         db = SessionLocal()
         load_valid_rows_to_db(db=db, valid_rows=rows)
     finally:
